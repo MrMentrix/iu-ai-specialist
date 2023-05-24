@@ -1,0 +1,8 @@
+# ignoring the datasets
+/datasets
+
+# ignoring the virtual environment
+/iu-ai-specialist
+
+# ignoring all the models
+/models
