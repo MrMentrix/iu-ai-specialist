@@ -10,58 +10,58 @@ To successfully replicate this project, it is recommended to set up an isolated 
 4. Run `pip install -r requirements.txt`
 
 # Datasets
-Since I couldn't find a reliable dataset with customer reviews and existing emotion-labels, I decided to first use regular texts to train the model on emotion detection. Then, I would use another dataset with reviews to detect emotions within reviews.
+Here is a quick overview of all datasets that have been used:
 
-## Training Emotion Detection
+1. [datasets for natural language processing](https://www.kaggle.com/datasets/toygarr/datasets-for-natural-language-processing) was used to build the sarcasm detector
+2. [Go Emotions: Google Emotions Dataset](https://www.kaggle.com/datasets/shivamb/go-emotions-google-emotions-dataset) was used to build the emotion detector
 
-1. "[Emotions in text](https://www.kaggle.com/datasets/ishantjuyal/emotions-in-text)"
-> This dataset was taken from Kaggle and consists of two columns, Text and Emotions. It is unclear where the data originates from.  
-> There are 6 different emotions, which are:
-> - sadness
-> - anger
-> - love
-> - surprise
-> - fear
-> - happy
+# Building the Machine Learning Models
+Testing showed that it would make more sense to perform 2 individual tests, one for the general emotions, and one for sarcasm, which will print the likelihood of a certain text being sarcastic. Since it can be hard to automatically detect subtle sarcasm, instead of a binary classification of, e.g., "sarcasm/no sarcasm", a linear probability of 0%-100% for sarcasm will be returned. The same approach is taken for emotions, where a total of 28 emotions are predicted on a 0%-100% scale. This is, since a review can be, e.g., both happy about a cool feature while sad that the product broke. If the emotional state is very unclear, this will be highlighted.
 
-2. "[Emotion Detection from Text](https://www.kaggle.com/datasets/pashupatigupta/emotion-detection-from-text)"
-> This datasit was taken from Kaggle and consists of three columns, tweet_id, sentiment, and content. The data originates from Tweets.  
-> There are 13 different emotions, which are:
-> - empty
-> - sadness
-> - enthusiasm
-> - neutral
-> - worry
-> - surprise
-> - love
-> - fun
-> - hate
-> - happiness
-> - boredom
-> - relief
-> - anger
 
-Some of the emotions overlap between the datasets, which are what can be considered "common emotions", such as happiness, fear, anger, surprise, and love. These emotions will be merged together during the merging process. The goal of this merging of the two datasets is to provide a larger training dataset for the model, which may eventually lead to better performance.
+# Sarcasm Model
 
-### Merging the datasets
-To merge the datasets, the following steps will be applied:
-1. Clean both datasets individually (appeared to be not needed, since the datasets were of good quality and had no missing values)
-2. Merge both datasets into one "emotion_data.csv" dataset, where the "Text" and "content" as well as the "Emotions" and "sentiment" columns will be appended.
+## Sarcasm Analysis Dataset
+For the sarcasm analysis, the following dataset from Kaggle was used: [datasets for natural language processing](https://www.kaggle.com/datasets/toygarr/datasets-for-natural-language-processing). The data contains multiple folders, one of them including a sarcasm training and testing set.
 
-**All these steps can be found in "merging.py"!**
+### Sarcasm Analysis Preparations
+First, the data was cleaned in `sarcasm_cleaning.py`, by simply removing all missing values. Since checking for any semantic errors would require tons of manual work, this step was skipped. Both the original `sarcasm_train.csv` and `sarcasm_test.csv` were concatenated into `sarcasm_cleaned.csv`, to enable any test-train-ratio during the validation process. To ensure reproducability, a seed of `42` was chosen for both numpy and tensorflow, as it may give the answer to everything.
 
-### Accounting for Irony and Sarcasm
-Since an additional objective of this task is to account for irony and sarcasm as well, a third training dataset from Kaggle was used:
-[Tweets with Sarcasm and Irony](https://www.kaggle.com/datasets/nikhiljohnk/tweets-with-sarcasm-and-irony)
+To store all data during the training process and iteration, all sarcasm models were stored in the `sarcasm-models` folder.
 
-The dataset contains 4 classifications of meaning behind a text, which are "figurative", "irony", "regular", and "sarcasm".
+### Sarcasm Analysis Machine Learning Model
+After several iterations, a model with the following architecture was chosen:
+First, an embedding layer converts the text data into dense vector representations. Two Bidirectional layers will then process the input and store information in Long Short-Term Memory. A dropout layer then randomly removes inputs (sets them to 0) to avoid overfitting, before the all values are given to a dense layer, which is repeated once.
 
-## Testing Dataset
+With this architecture, all relevant information should be captured while overfitting is being avoided.
 
-The testing dataset being used is "[amazon_review_full](https://drive.google.com/drive/folders/0Bz8a_Dbh9Qhbfll6bVpmNUtUcFdjYmF2SEpmZUZUcVNiMUw1TWN6RDV3a0JHT3kxLVhVR2M)", which is provided by Xiang Zhang on their Google Drive. I found it via a [reference on Kaggle](https://www.kaggle.com/datasets/bittlingmayer/amazonreviews).
 
-# Training Preparations
-For this project, two models will be created. One to detect irony and sarcasm, and a second model to detect the emotions of a given text.
-While I first tried using sklearn, I decided to refactor my code and use tensorflow instead. The reason behind this is that due to longer training and testing times, I wanted to utilize my GPU instead of solely running the code on my CPU. However, since the combination of Windows, Nvidia, and Microsoft Visual Studio made it pretty much impossible to set up a working environment for `pycuda`, I decided to give it another shot with tensorflow.
+# Emotion Model
 
-## Irony & Sarcasm Detector
+## Emotion Analysis Dataset
+For the emotion analysis, another dataset from Kaggle was used: [Go Emotions: Google Emotions Dataset](https://www.kaggle.com/datasets/shivamb/go-emotions-google-emotions-dataset). This data contains 28 different emotions and a classification whether or not a text is "very unclear".
+
+### Emotion Analysis Preparations
+
+During the preparations, a seed is set for `42`, as a uniform seed is practical. Also, all missing values are removed in `emotion_cleaning.py`, before the final dataset `emotion_cleaned.csv` ist stored in the data folder.
+
+To store all model architectures during the training process, all emotion models were stored in `emotion-models`.
+
+### Emotion Data Cleaning & Preprocessing
+
+To determine whether the model should predict a single emotion, or make predictions on all emotions and give a likelihood, the training data was analyzed to see how many data points would have multiple emotions associated with them. The results are:
+{1: 175231, 2: 31187, 3: 4218, 4: 399, 7: 20, 6: 53, 5: 106, 9: 3, 8: 6, 10: 1, 12: 1}
+
+This indicates that while the majority of datapoints has only one emotion associated with them, there are several (a little over 35,000) datapoints where multiple emotions are associated. However, 3 emotions appears to be still likely, while 4 or more emotions seems to be very rare. When looking at some more extreme cases, where there have been 10 or 12 emotions, it becomes clear, that these classifications cannot be fully correct.
+
+Examples:
+1. "At least you should have helped out since you had rudely interrupted him."
+Emotions: ['admiration', 'anger', 'caring', 'curiosity', 'disgust', 'embarrassment', 'nervousness', 'realization', 'remorse', 'sadness']
+
+2. "Two or three anti depressants before I told them a lie about how I tried my moms valium and it worked"
+Emotions: ['admiration', 'approval', 'curiosity', 'disappointment', 'embarrassment', 'fear', 'gratitude', 'nervousness', 'optimism', 'pride', 'realization', 'remorse']
+
+Looking at example 1., personally, I only agree with "caring" based on the emotion classification, making the other 9 emotions obsolete. For example 2., I would classify the sentence as rather "neutral", possibly "gratitude". These two examples lead me to the decision to remove all datapoints with more than 3 emotions.
+
+Additionally, the `id` column was removed, all rows with `emotion_df["example_very_unclear"] == True` were removed, and the `example_very_unclear` column has also been removed, to free the dataset of unneeded information. This reduced the dataset from a `(211225, 31)` shape to `(207225, 29)`, removing exactly 4,000 datapoints, and 2 columns.
+

@@ -2,7 +2,11 @@
 /datasets
 
 # ignoring the virtual environment
-/iu-ai-specialist
+/venv
 
 # ignoring all the models
-/models
+/sarcasm_models
+/emotion_models
+
+# ignoring all the logs
+/__pycache__

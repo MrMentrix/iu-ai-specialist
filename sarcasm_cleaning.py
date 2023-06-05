@@ -11,4 +11,4 @@ dataset = pd.concat([sarcasm_test, sarcasm_train], ignore_index=True)
 dataset.rename(columns={"Y": "sarcasm"}, inplace=True)
 dataset.replace({"sarcasm": {1: "sarcasm", 0: "honest"}}, inplace=True)
 
-dataset.to_csv("./datasets/cleaned_sarcasm.csv", index=False)
+dataset.to_csv("./datasets/sarcasm_cleaned.csv", index=False)
