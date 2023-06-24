@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 emotion_df = pd.read_csv('datasets/go_emotions_dataset.csv')
 
@@ -22,14 +23,21 @@ emotion_columns =['admiration', 'amusement', 'anger', 'annoyance', 'approval', '
 # calculating the sum of emotions per row
 emotion_sums = emotion_df[emotion_columns].sum(axis=1)
 
-# identifying the rows with 4+ emotions, that need to be removed
-rows_to_delete = emotion_df[emotion_sums >= 4].index
-
-# dropping/deleting all rows with 4 or more emotions
-emotion_df.drop(rows_to_delete, inplace=True)
+# dropping/deleting all rows with 2+ or 0 emotions
+emotion_df.drop(emotion_df[emotion_sums >= 2].index, inplace=True)
+emotion_df.drop(emotion_df[emotion_sums == 0].index, inplace=True)
 
 # removing all spaces
 emotion_df["text"] = emotion_df["text"].apply(lambda x: x.strip())
+
+# filtering out the emotions
+emotions_mask = emotion_df[emotion_columns] == 1
+emotion_labels = np.where(emotions_mask, emotion_columns, "")
+mask = emotion_labels != ""
+emotion_labels = emotion_labels[mask]
+
+# create new df with only text and emotion labels
+emotion_df = pd.DataFrame({"text": emotion_df["text"], "emotion": emotion_labels})
 
 # storing the cleaned dataset
 emotion_df.to_csv("datasets/emotion_cleaned.csv", index=False)

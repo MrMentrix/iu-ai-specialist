@@ -11,6 +11,13 @@ import numpy as np
 import os
 import pickle
 import json
+import os
+
+tf.config.threading.set_intra_op_parallelism_threads(1)
+tf.config.threading.set_inter_op_parallelism_threads(4)
+
+# print if GPU is available
+print("GPU is", "available" if tf.config.list_physical_devices("GPU") else "NOT AVAILABLE")
 
 # Set seed for reproducibility
 np.random.seed(42)
@@ -18,7 +25,7 @@ tf.random.set_seed(42)
 
 overwrite = True  # Overwrite current model version
 epochs = 20
-model_name = "model-7"
+model_name = "model-8"
 model_folder = f"./sarcasm_models/{model_name}/"
 
 if not os.path.exists(model_folder):
@@ -50,19 +57,19 @@ train_label_encoded = label_encoder.fit_transform(sarcasm_label)
 with open(os.path.join(model_folder, f"label_encoder-{model_name}.pickle"), "wb") as label_encoder_file:
     pickle.dump(label_encoder, label_encoder_file)
 
-# All model settings
+#All model settings
 vocab_size = len(tokenizer.word_index) + 1
-output_dim = 100
+embedding_dim = 50
 input_length = max_len
 lstm_units = 128
-dropout = 0.3
-dense_units = 1
+dropout = 0.2
+end_nodes = 1
 activation = "sigmoid"
 loss = "binary_crossentropy"
 metrics = ["accuracy"]
-batch_size = 512
+batch_size = 32
 validation_split = 0.05
-learning_rate = 0.001
+learning_rate = 0.01
 
 optimizer = Adam(learning_rate=learning_rate)
 
@@ -73,11 +80,11 @@ else:
     with open(os.path.join(model_folder, f"config-{model_name}.json"), "w") as config_json:
         json_dict = {
             "vocab_size": vocab_size,
-            "output_dim": output_dim,
+            "embedding_dim": embedding_dim,
             "input_length": input_length,
             "lstm_units": lstm_units,
             "dropout": dropout,
-            "dense_units": dense_units,
+            "end_nodes": end_nodes,
             "activation": activation,
             "loss": loss,
             "metrics": metrics,
@@ -88,13 +95,13 @@ else:
         json.dump(json_dict, config_json, indent=4)
 
     model = Sequential([
-        Embedding(input_dim=vocab_size, output_dim=output_dim, input_length=input_length),
-        Bidirectional(LSTM(units=lstm_units, return_sequences=True, dropout=0.2, recurrent_dropout=0.2)),
-        Bidirectional(LSTM(units=lstm_units, dropout=0.2, recurrent_dropout=0.2)),
+        Embedding(input_dim=vocab_size, output_dim=embedding_dim, input_length=input_length),
+        Bidirectional(LSTM(units=lstm_units, return_sequences=True)),
+        Bidirectional(LSTM(units=lstm_units)),
         Dropout(dropout),
-        Dense(64, activation='relu'),
-        Dropout(0.5),
-        Dense(units=dense_units, activation=activation)
+        Dense(128, activation='relu'),
+        Dropout(dropout),
+        Dense(units=end_nodes, activation='sigmoid')
     ])
 
 model.compile(optimizer=optimizer, loss=loss, metrics=metrics)

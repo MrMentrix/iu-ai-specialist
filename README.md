@@ -2,12 +2,13 @@
 Repository for Artificial Intelligence Project for IU
 
 # Virtual Environment Setup
-To successfully replicate this project, it is recommended to set up an isolated virtual environment. The assumption is made that you are using Windows.
+To successfully replicate this project, it is recommended to set up an isolated virtual environment. The prerequisits include Python/Python3, Python-Venv and Python-Pip.
 
 1. Clone this repository to any place you chose
 2. Open a terminal and locate the folder you cloned this repository to
-3. Use `python -m venv venv` in the terminal
-4. Run `pip install -r requirements.txt`
+3. Use `python -m venv <path>` in the terminal
+4. Activate the environment, Linux: `source venv/bin/activate`; Windows: `venv\scripts\activate` 
+5. Run `pip install -r requirements.txt`
 
 # Datasets
 Here is a quick overview of all datasets that have been used:
@@ -27,13 +28,7 @@ For the sarcasm analysis, the following dataset from Kaggle was used: [datasets 
 ### Sarcasm Analysis Preparations
 First, the data was cleaned in `sarcasm_cleaning.py`, by simply removing all missing values. Since checking for any semantic errors would require tons of manual work, this step was skipped. Both the original `sarcasm_train.csv` and `sarcasm_test.csv` were concatenated into `sarcasm_cleaned.csv`, to enable any test-train-ratio during the validation process. To ensure reproducability, a seed of `42` was chosen for both numpy and tensorflow, as it may give the answer to everything.
 
-To store all data during the training process and iteration, all sarcasm models were stored in the `sarcasm-models` folder.
-
-### Sarcasm Analysis Machine Learning Model
-After several iterations, a model with the following architecture was chosen:
-First, an embedding layer converts the text data into dense vector representations. Two Bidirectional layers will then process the input and store information in Long Short-Term Memory. A dropout layer then randomly removes inputs (sets them to 0) to avoid overfitting, before the all values are given to a dense layer, which is repeated once.
-
-With this architecture, all relevant information should be captured while overfitting is being avoided.
+To store multiple model architectures for later comparison, all sarcasm models were stored in the `sarcasm-models` folder. The current model architecture configuration can be viewed in `sarcarsm_training.py`.
 
 
 # Emotion Model
@@ -49,19 +44,30 @@ To store all model architectures during the training process, all emotion models
 
 ### Emotion Data Cleaning & Preprocessing
 
-To determine whether the model should predict a single emotion, or make predictions on all emotions and give a likelihood, the training data was analyzed to see how many data points would have multiple emotions associated with them. The results are:
+Some datapoints had multiple emotions assigned to them, while others only had a single emotion. The clear majority of the dataset had a single emotion assigned, single ones even up to 12 emotions. To ensure a uniformous label, only the datapoints with a single emotion were taken. To reduce complexity, the 28 individual binary emotion columns/features have been reduced to a single "emotion" column. All missing values, etc., have been removed from the dataset.
+
+Distribution of amout of emotions per datapoint:
 {1: 175231, 2: 31187, 3: 4218, 4: 399, 7: 20, 6: 53, 5: 106, 9: 3, 8: 6, 10: 1, 12: 1}
 
-This indicates that while the majority of datapoints has only one emotion associated with them, there are several (a little over 35,000) datapoints where multiple emotions are associated. However, 3 emotions appears to be still likely, while 4 or more emotions seems to be very rare. When looking at some more extreme cases, where there have been 10 or 12 emotions, it becomes clear, that these classifications cannot be fully correct.
+Additionally, the `id` column was removed, all rows with `emotion_df["example_very_unclear"] == True` were removed, and the `example_very_unclear` column has also been removed, to free the dataset of unneeded information. This reduced the dataset from a `(211225, 31)` shape to `(171820, 2)`, removing exactly 4,000 datapoints, and 2 columns.
 
-Examples:
-1. "At least you should have helped out since you had rudely interrupted him."
-Emotions: ['admiration', 'anger', 'caring', 'curiosity', 'disgust', 'embarrassment', 'nervousness', 'realization', 'remorse', 'sadness']
+Just like with the sarcasm model, the individual architectures have been stored in the `emotion_models` folder. Since the dataset was a lot larger and a single epoch took about 30 minutes, fewer models have been trained. 
 
-2. "Two or three anti depressants before I told them a lie about how I tried my moms valium and it worked"
-Emotions: ['admiration', 'approval', 'curiosity', 'disappointment', 'embarrassment', 'fear', 'gratitude', 'nervousness', 'optimism', 'pride', 'realization', 'remorse']
 
-Looking at example 1., personally, I only agree with "caring" based on the emotion classification, making the other 9 emotions obsolete. For example 2., I would classify the sentence as rather "neutral", possibly "gratitude". These two examples lead me to the decision to remove all datapoints with more than 3 emotions.
+# Testing the Models
 
-Additionally, the `id` column was removed, all rows with `emotion_df["example_very_unclear"] == True` were removed, and the `example_very_unclear` column has also been removed, to free the dataset of unneeded information. This reduced the dataset from a `(211225, 31)` shape to `(207225, 29)`, removing exactly 4,000 datapoints, and 2 columns.
+By running `test.py`, you'll be able to input a single sentence as a test sentence. Here is an example:
 
+Input: "the weather is nice"
+Output:
+Emotion Prediction: ['admiration']
+Sarcasm Prediction: Not Sarcastic (Probability: 0.69%)
+
+The sarcasm probability means that the model give the sentence a 0.69% chance of being sarcasm.
+
+Input: "Every single polititian is doing such a great job!"
+Output:
+Emotion Prediction: ['admiration']
+Sarcasm Prediction: Sarcastic (Probability: 52.35%)
+
+In this case, the emotion is still classified as "admiration", but  the text is classified as sarcasm, meaning that they are not truly admiring every single polititian.
