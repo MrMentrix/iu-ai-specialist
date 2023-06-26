@@ -56,18 +56,4 @@ Just like with the sarcasm model, the individual architectures have been stored 
 
 # Testing the Models
 
-By running `test.py`, you'll be able to input a single sentence as a test sentence. Here is an example:
-
-Input: "the weather is nice"
-Output:
-Emotion Prediction: ['admiration']
-Sarcasm Prediction: Not Sarcastic (Probability: 0.69%)
-
-The sarcasm probability means that the model give the sentence a 0.69% chance of being sarcasm.
-
-Input: "Every single polititian is doing such a great job!"
-Output:
-Emotion Prediction: ['admiration']
-Sarcasm Prediction: Sarcastic (Probability: 52.35%)
-
-In this case, the emotion is still classified as "admiration", but  the text is classified as sarcasm, meaning that they are not truly admiring every single polititian.
+By running `test.py`, you'll be able to input single sentences for testing. Examples can be found in `samples.md`.

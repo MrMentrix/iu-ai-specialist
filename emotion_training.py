@@ -3,8 +3,8 @@ import numpy as np
 import pickle
 import json
 
-from sklearn.preprocessing import LabelBinarizer
 from sklearn.preprocessing import LabelEncoder
+from tensorflow.keras.utils import to_categorical  # Added import
 
 import tensorflow as tf
 from keras.layers import Embedding, Bidirectional, LSTM, Dense, Dropout
@@ -26,8 +26,8 @@ np.random.seed(42)
 tf.random.set_seed(42)
 
 # model settings
-overwrite = False # will overwrite the current model
-model_name = "model-2"
+overwrite = False  # will overwrite the current model
+model_name = "model-3"
 model_folder = f"./emotion_models/{model_name}/"
 
 if not os.path.exists(model_folder):
@@ -36,9 +36,7 @@ if not os.path.exists(model_folder):
 # loading the data
 emotion_dataset_full = pd.read_csv("datasets/emotion_cleaned.csv")
 
-"""
-Since I've spent 8 weeks (!) trying to get my GPU running, bought 3 new GPUs (RTX 3080 Ti, RX 6950 XT, and RX 7900 XT) and none of them would work with TensorFlow, I'll have to use my CPU for training. Since a single Epoch with the full dataset will take over 20 Minutes (on a Ryzen 7950X), I'll be using a subset of 5% or 10% of the entire dataset.
-"""
+# Subset option
 subset_size = 1
 emotion_dataset = emotion_dataset_full.sample(frac=subset_size, random_state=42).reset_index(drop=True)
 
@@ -60,27 +58,31 @@ max_len = max([len(x) for x in text_sequences])
 padded_sequences = pad_sequences(text_sequences, maxlen=max_len, padding="post")
 
 # Encoding the labels with LabelEncoder
-label_encoder = LabelBinarizer()
+label_encoder = LabelEncoder()
 train_label_encoded = label_encoder.fit_transform(label_data)
+
+# Convert target data to one-hot encoded format
+num_classes = label_encoder.classes_.shape[0]
+train_label_encoded = to_categorical(train_label_encoded, num_classes=num_classes)  # Added conversion
 
 # Store label encoder
 with open(os.path.join(model_folder, f"label_encoder-{model_name}.pickle"), "wb") as label_encoder_file:
     pickle.dump(label_encoder, label_encoder_file)
 
 # Model settings
-epochs = 16
+epochs = 8
 vocab_size = len(tokenizer.word_index) + 1
-embedding_dim = 512
+embedding_dim = 256
 input_len = max_len
-lstm_units = 256
-dropout = 0.3
-end_nodes = train_label_encoded.shape[1]
+lstm_units = 128
+dropout = 0.2
+end_nodes = num_classes  # Replaced `label_data.unique().shape[0]` with `num_classes`
 activation = "softmax"
 loss = "categorical_crossentropy"
 metrics = ["accuracy"]
-batch_size = 32
+batch_size = 128
 validation_split = 0.1
-learning_rate = 0.01
+learning_rate = 0.001
 
 optimizer = Adam(learning_rate=learning_rate)
 
@@ -122,6 +124,7 @@ early_stopping = EarlyStopping(patience=10, monitor="val_loss", restore_best_wei
 # Compile the model
 model.compile(optimizer=optimizer, loss="categorical_crossentropy", metrics=["accuracy"])
 
-history = model.fit(padded_sequences, train_label_encoded, validation_split=validation_split, epochs=epochs, batch_size=batch_size, callbacks=[early_stopping])
+history = model.fit(padded_sequences, train_label_encoded, validation_split=validation_split,
+                    epochs=epochs, batch_size=batch_size, callbacks=[early_stopping])
 
 model.save(os.path.join(model_folder, f"{model_name}.h5"))

@@ -1,14 +1,14 @@
 import pickle
-import numpy as np
 import json
+import numpy as np
 
-from sklearn.preprocessing import LabelBinarizer
+from sklearn.preprocessing import LabelEncoder
 
 from keras.models import load_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 
 # Load the emotion model and tokenizer
-emotion_model_version = "model-2"
+emotion_model_version = "model-3"
 emotion_model = load_model(f"emotion_models/{emotion_model_version}/{emotion_model_version}.h5")
 emotion_tokenizer = pickle.load(open(f"emotion_models/{emotion_model_version}/tokenizer-{emotion_model_version}.pickle", "rb"))
 emotion_label_encoder = pickle.load(open(f"emotion_models/{emotion_model_version}/label_encoder-{emotion_model_version}.pickle", "rb"))
@@ -22,27 +22,29 @@ sarcasm_tokenizer = pickle.load(open(f"sarcasm_models/{sarcasm_model_version}/to
 sarcasm_config = json.load(open(f"sarcasm_models/{sarcasm_model_version}/config-{sarcasm_model_version}.json", "r"))
 sarcasm_len = sarcasm_config["input_length"]
 
-# User input
-user_input = input("Enter a sentence: ")
+while True:
 
-# Tokenize the input for emotion model
-emotion_input = emotion_tokenizer.texts_to_sequences([user_input])
-emotion_input = pad_sequences(emotion_input, maxlen=emotion_len, padding="post")
+    # User input
+    user_input = input("Enter a sentence: ")
 
-# Tokenize the input for sarcasm model
-sarcasm_input = sarcasm_tokenizer.texts_to_sequences([user_input])
-sarcasm_input = pad_sequences(sarcasm_input, maxlen=sarcasm_len, padding="post")
+    # Tokenize the input for emotion model
+    emotion_input = emotion_tokenizer.texts_to_sequences([user_input])
+    emotion_input = pad_sequences(emotion_input, maxlen=emotion_len, padding="post")
 
-# Make predictions
-emotion_prediction = emotion_model.predict(emotion_input)
-sarcasm_prediction = sarcasm_model.predict(sarcasm_input)
+    # Tokenize the input for sarcasm model
+    sarcasm_input = sarcasm_tokenizer.texts_to_sequences([user_input])
+    sarcasm_input = pad_sequences(sarcasm_input, maxlen=sarcasm_len, padding="post")
 
-emotion_label_binarizer = LabelBinarizer()
-emotion_label_binarizer.fit(emotion_label_encoder.classes_)
+    # Make predictions
+    emotion_prediction = emotion_model.predict(emotion_input)
+    sarcasm_prediction = sarcasm_model.predict(sarcasm_input)
 
-# Transform emotion predictions using the label binarizer
-emotion_predictions_encoded = emotion_label_binarizer.inverse_transform(emotion_prediction)
+    top_3_indices = np.argsort(emotion_prediction[0])[:-4:-1]
+    top_3_emotions = emotion_label_encoder.inverse_transform(top_3_indices)
+    top_3_probabilities = emotion_prediction[0][top_3_indices]
 
-# Output predictions
-print("Emotion Prediction:", emotion_predictions_encoded)
-print("Sarcasm Prediction:", "Sarcastic" if sarcasm_prediction[0][0] >= 0.5 else "Not Sarcastic", f"(Probability: {sarcasm_prediction[0][0] * 100:.2f}%)")
+    for emotion, probability in zip(top_3_emotions, top_3_probabilities):
+        print(f"{emotion[0].upper()}{emotion[1:]}: Probability {round(probability*100, 2)}%")
+
+    # Output predictions
+    print("Sarcasm Prediction:", "Sarcastic" if sarcasm_prediction[0][0] >= 0.5 else "Not Sarcastic", f"(Probability: {sarcasm_prediction[0][0] * 100:.2f}%)")
