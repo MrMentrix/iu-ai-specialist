@@ -56,4 +56,4 @@ Just like with the sarcasm model, the individual architectures have been stored 
 
 # Testing the Models
 
-By running `test.py`, you'll be able to input single sentences for testing. Examples can be found in `samples.md`.
+By running `main.py`, you'll be able to input single sentences for testing. Examples can be found in `samples.md`.

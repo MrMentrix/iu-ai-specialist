@@ -15,7 +15,7 @@ emotion_df = emotion_df[emotion_df["example_very_unclear"] == False]
 emotion_df.drop(columns= ["id", "example_very_unclear"], inplace=True)
 
 # listing all emotion columns
-emotion_columns =['admiration', 'amusement', 'anger', 'annoyance', 'approval', 'caring', 'confusion', 
+emotion_columns = ['admiration', 'amusement', 'anger', 'annoyance', 'approval', 'caring', 'confusion', 
                   'curiosity', 'desire', 'disappointment', 'disapproval', 'disgust', 'embarrassment',
                   'excitement', 'fear', 'gratitude', 'grief', 'joy', 'love', 'nervousness', 'optimism',
                   'pride', 'realization', 'relief', 'remorse', 'sadness', 'surprise', 'neutral']
